@@ -29,6 +29,17 @@ class AkunController extends Controller
 
         $this->progresKegiatan();
 
+
+        //menghitung jumlah verifikasi
+        $verifikasi = $this->total_verifikasi($kegiatan->id);
+
+        // akses nilai verifikasi
+        $complete_verifikasis = $verifikasi['complete_verifikasis'];
+        $total_verifikasis = $verifikasi['total_verifikasis'];
+        $all_complete_verifikasis = $verifikasi['all_complete_verifikasis'];
+        $all_total_verifikasis = $verifikasi['all_total_verifikasis'];
+
+
         // Mendapatkan data akun berdasarkan kegiatan_id dan filter
         $akunQuery = Akun::where('kegiatan_id', $kegiatan->id)->filter(request()->except(['search']));
 
@@ -49,9 +60,9 @@ class AkunController extends Controller
         foreach ($kegiatan->akun as $akun) {
             $transaksi_nilai = $this->monitoring_nilai_transaksi($akun->id);
             // Jika monitoring_nilai_transaksi mengembalikan pesan error, lewati
-            
+
             $nilai_trans[$akun->id] = $transaksi_nilai;
-            
+
             $transaksi_nilai = str_replace('.', '', $transaksi_nilai);
             $numericTransNilai = (float) $transaksi_nilai;
 
@@ -64,17 +75,21 @@ class AkunController extends Controller
 
 
         // Mengirimkan data ke view
-        return view('page.administrasi.akun.index', [
-            'kegiatan' => $kegiatan,
-            'akuns' => $akuns,
-            'fungsi' => $fungsi,
-            'nilai_trans' => $nilai_trans,
-            'nilai_trans_all'=> $nilai_trans_all,
-        ]);
+        return view('page.administrasi.akun.index', compact(
+            'kegiatan',
+            'akuns',
+            'fungsi',
+            'nilai_trans',
+            'nilai_trans_all',
+            'complete_verifikasis',
+            'total_verifikasis',
+            'all_complete_verifikasis',
+            'all_total_verifikasis'
+        ));
     }
 
 
-    // function untuk menyimpan akun 
+    // function untuk menyimpan akun
     public function store(StoreAkunRequest $request)
     {
 
@@ -85,7 +100,8 @@ class AkunController extends Controller
                 'nama' => [
                     'required',
                     'max:550',
-                    'regex:/^[^\/<>:;|?*\\"\\]+$/'
+                    'regex:/^[^\/<>:;|?*\\\\"]+$/'
+
                 ],
                 'kegiatan_id' => 'required'
             ]);
@@ -99,7 +115,7 @@ class AkunController extends Controller
             $file = Akun::where('kegiatan_id', $kegiatan_id)->get();
             $find = $file->where('nama', $request->nama)->first();
 
-            //jika ditemukan nama yg sama return error 
+            //jika ditemukan nama yg sama return error
             if ($find) {
                 return back()->with('error', 'Nama akun ' . $request->nama . ' telah tersedia!');
             }
@@ -120,16 +136,17 @@ class AkunController extends Controller
         return response()->json($akuns);
     }
 
-    //function update untuk akun 
+    //function update untuk akun
     public function update(Request $request)
     {
         // melakuan request validasi nama
         $requestValidasi = $request->validate([
             'nama' => [
-                    'required',
-                    'max:550',
-                    'regex:/^[^\/<>:;|?*\\"\\]+$/'
-                ],
+                'required',
+                'max:550',
+                'regex:/^[^\/<>:;|?*\\\\"]+$/'
+
+            ],
 
         ]);
 
@@ -143,7 +160,7 @@ class AkunController extends Controller
             ->where('id', '!=', $request->id)
             ->first();
 
-        // jika ada nama akun yang sama, maka return  error 
+        // jika ada nama akun yang sama, maka return  error
         if ($existingAkun) {
             return back()->with('error', 'Nama kegiatan ' . $requestValidasi['nama'] . ' telah tersedia!');
         }
@@ -154,29 +171,29 @@ class AkunController extends Controller
         //membuat folder untuk akun
         $akun = Akun::findOrFail($request->id);
 
-        //proses membuat alamat folder akun 
-        $oldFolderPath = 'public/administrasis/'  . $kegiatan->tahun  . '/' . $fungsi . '/' . $kegiatan->nama . '/' . $request->oldNama;
-        $newFolderPath = 'public/administrasis/' . $kegiatan->tahun  . '/' . $fungsi . '/'  . $kegiatan->nama . '/' . $request->nama;
+        //proses membuat alamat folder akun
+        $oldFolderPath = 'public/administrasis/' . $kegiatan->tahun . '/' . $fungsi . '/' . $kegiatan->nama . '/' . $request->oldNama;
+        $newFolderPath = 'public/administrasis/' . $kegiatan->tahun . '/' . $fungsi . '/' . $kegiatan->nama . '/' . $request->nama;
         // Rename the folder
         if ($request->nama !== $request->oldNama) {
 
             $transaksis = Transaksi::where('akun_id', $request->id)->get();
             foreach ($transaksis as $transaksi) {
-                $pathOld = ($oldFolderPath  . '/' . $transaksi->nama);
+                $pathOld = ($oldFolderPath . '/' . $transaksi->nama);
                 $files = Storage::files($pathOld);
 
                 foreach ($files as $file) {
                     // Mengganti jalur lama dengan jalur baru
                     $file = Str::of($file)->replace(
-                        'storage/administrasis/' . $kegiatan->tahun  . '/' . $fungsi . '/' . $kegiatan->nama . '/' . $request->oldNama,
-                        'storage/administrasis/' . $kegiatan->tahun  . '/' . $fungsi . '/' . $kegiatan->nama . '/' . $request->oldNama
+                        'storage/administrasis/' . $kegiatan->tahun . '/' . $fungsi . '/' . $kegiatan->nama . '/' . $request->oldNama,
+                        'storage/administrasis/' . $kegiatan->tahun . '/' . $fungsi . '/' . $kegiatan->nama . '/' . $request->oldNama
                     );
 
                     $file_content = Storage::get($file);
                     $file_name_parts = explode("/", $file);
                     if (count($file_name_parts) > 0) {
                         $file_name = $file_name_parts[count($file_name_parts) - 1];
-                        $file_path = ($newFolderPath . '/'  . $transaksi->nama . '/' . $file_name);
+                        $file_path = ($newFolderPath . '/' . $transaksi->nama . '/' . $file_name);
                         $storage = Storage::put($file_path, $file_content);
                         $delete = Storage::deleteDirectory($oldFolderPath);
                     }
@@ -198,7 +215,7 @@ class AkunController extends Controller
         $filePath = "storage/administrasis/$kegiatan->tahun/$fungsi/{$kegiatan->nama}/{$akun->nama}";
         File::deleteDirectory($filePath);
 
-        //melakukan penghapusan transaksi dan file di dalam akun 
+        //melakukan penghapusan transaksi dan file di dalam akun
         $akun->transaksi()->each(function ($transaksi) {
             $transaksi->file()->delete();
             $transaksi->delete();
@@ -251,7 +268,7 @@ class AkunController extends Controller
         return $fungsi;
     }
 
-    // menghitung progres kegiatan administrasi 
+    // menghitung progres kegiatan administrasi
     public function progresKegiatan()
     {
 
@@ -288,30 +305,69 @@ class AkunController extends Controller
         $akun = Akun::find($id);
         $nilai_trans = 0;
         $total_nilai = 0;
-            foreach ($akun->transaksi as $transaksi) {
-                $nilai = $transaksi->nilai_trans;
+        foreach ($akun->transaksi as $transaksi) {
+            $nilai = $transaksi->nilai_trans;
 
-                if ($nilai !== null && $nilai !== '') {
-                    $nilai = str_replace('.', '', $nilai);
-                    $numericTransNilai = (float) $nilai;
-                    $total_nilai += $numericTransNilai;
-                }
+            if ($nilai !== null && $nilai !== '') {
+                $nilai = str_replace('.', '', $nilai);
+                $numericTransNilai = (float) $nilai;
+                $total_nilai += $numericTransNilai;
             }
+        }
 
-            // Mengembalikan nilai setelah semua perulangan selesai
-            $nilai_trans += $total_nilai;
+        // Mengembalikan nilai setelah semua perulangan selesai
+        $nilai_trans += $total_nilai;
 
-            $nilai_trans = number_format($nilai_trans, 0, ',', '.');
-// dd($nilai_trans);
+        $nilai_trans = number_format($nilai_trans, 0, ',', '.');
+        // dd($nilai_trans);
 
 
-            return $nilai_trans;
-        
+        return $nilai_trans;
+
 
         // Format nilai akhir di luar perulangan
 
     }
 
+    public function total_verifikasi($id)
+    {
+        $akuns = Akun::where('kegiatan_id', $id)->get();
 
 
+        $complete_verifikasis = [];
+        $total_verifikasis = [];
+        $all_complete_verifikasis = 0;
+        $all_total_verifikasis = 0;
+
+        foreach ($akuns as $akun) {
+            $complete_verifikasi = 0;
+            $total_verifikasi = 0;
+
+            foreach ($akun->transaksi as $transaksi) {
+                foreach ($transaksi->file as $file) {
+                    if ($file->ceklist === 1) {
+                        $complete_verifikasi += 1;
+                    }
+                    $total_verifikasi += 1;
+                }
+
+            }
+
+            $complete_verifikasis[$akun->id] = $complete_verifikasi;
+            $total_verifikasis[$akun->id] = $total_verifikasi;
+            $all_complete_verifikasis += $complete_verifikasi;
+            $all_total_verifikasis += $total_verifikasi;
+
+
+        }
+        return [
+            'complete_verifikasis' => $complete_verifikasis,
+            'total_verifikasis' => $total_verifikasis,
+            'all_complete_verifikasis' => $all_complete_verifikasis,
+            'all_total_verifikasis' => $all_total_verifikasis,
+        ];
+
+
+
+    }
 }

@@ -33,6 +33,16 @@ class TransaksiController extends Controller
         $fungsi = $this->getFungsi(); // Mendapatkan data fungsi
         $kegiatan = $this->getKegiatan(); // Mendapatkan data kegiatan
 
+        //menghitung jumlah verifikasi
+        $verifikasi = $this->total_verifikasi($akun->id);
+
+        // akses nilai verifikasi
+        $complete_verifikasis = $verifikasi['complete_verifikasis'];
+        $total_verifikasis = $verifikasi['total_verifikasis'];
+        $all_complete_verifikasis = $verifikasi['all_complete_verifikasis'];
+        $all_total_verifikasis = $verifikasi['all_total_verifikasis'];
+
+
         $this->progresAkun(); // Memanggil method untuk memproses akun
         $this->progresKegiatan(); // Memanggil method untuk memproses kegiatan
 
@@ -75,7 +85,7 @@ class TransaksiController extends Controller
         $nilai_total_trans = $this->monitoring_nilai_transaksi($akun->id);
 
         // Mengirimkan data ke view
-        return view('page.administrasi.transaksi.index', compact('akun', 'transaksis', 'fungsi', 'kegiatan', 'nilai_total_trans'));
+        return view('page.administrasi.transaksi.index', compact('akun', 'transaksis', 'fungsi', 'kegiatan', 'nilai_total_trans', 'complete_verifikasis', 'total_verifikasis', 'all_complete_verifikasis', 'all_total_verifikasis'));
     }
 
     /**
@@ -113,7 +123,8 @@ class TransaksiController extends Controller
                 'nama' => [
                     'required',
                     'max:550',
-                    'regex:/^[^\/<>:;|?*\\"\\]+$/'
+                    'regex:/^[^\/<>:;|?*\\\\"]+$/'
+
                 ],
                 'tgl_akhir' => 'required',
                 'bln_arsip' => 'required',
@@ -148,7 +159,7 @@ class TransaksiController extends Controller
 
         //     // Redirect ke halaman daftar transaksi dengan parameter akun, kegiatan, dan fungsi
         //     return redirect('/administrasi/transaksi?akun=' . $akun_id . '&kegiatan=' . $kegiatan . '&fungsi=' . $fungsi)->with('success', 'Transaksi berhasil disimpan!');
-        // 
+        //
         return back()->with('success', 'Transaksi berhasil disimpan!');
     }
 
@@ -174,10 +185,11 @@ class TransaksiController extends Controller
         // Validasi request
         $requestValidasi = $request->validate([
             'nama' => [
-                    'required',
-                    'max:550',
-                    // 'regex:/^[^\/<>:;|?*\\"\\]+$/'
-                ],
+                'required',
+                'max:550',
+                'regex:/^[^\/<>:;|?*\\\\"]+$/'
+
+            ],
             'no_kwt' => 'required',
             'tgl_akhir' => 'required',
             'bln_arsip' => 'required',
@@ -458,4 +470,42 @@ class TransaksiController extends Controller
         // Return the total transaction value
         return $nilai_trans;
     }
+
+    public function total_verifikasi($id)
+    {
+        $transaksis = Transaksi::where('akun_id', $id)->get();
+
+        $complete_verifikasis = [];
+        $total_verifikasis = [];
+        $all_complete_verifikasis = 0;
+        $all_total_verifikasis = 0;
+
+
+        foreach ($transaksis as $transaksi) {
+            $complete_verifikasi = 0;
+            $total_verifikasi = 0;
+
+            foreach ($transaksi->file as $file) {
+                if ($file->ceklist === 1) {
+                    $complete_verifikasi += 1;
+                }
+                $total_verifikasi += 1;
+            }
+
+            $complete_verifikasis[$transaksi->id] = $complete_verifikasi;
+            $total_verifikasis[$transaksi->id] = $total_verifikasi;
+
+            $all_complete_verifikasis += $complete_verifikasi;
+            $all_total_verifikasis += $total_verifikasi;
+        }
+
+
+        return [
+            'complete_verifikasis' => $complete_verifikasis,
+            'total_verifikasis' => $total_verifikasis,
+            'all_complete_verifikasis' => $all_complete_verifikasis,
+            'all_total_verifikasis' => $all_total_verifikasis,
+        ];
+    }
+
 }

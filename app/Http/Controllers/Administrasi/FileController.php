@@ -24,7 +24,7 @@ class FileController extends Controller
     public function index(Request $request)
     {
 
-       
+
         // Mengambil parameter dari request
         $fungsi = request('fungsi');
         $kegiatan = KegiatanAdministrasi::findOrFail(request('kegiatan'));
@@ -65,9 +65,6 @@ class FileController extends Controller
             $path = public_path("storage/administrasis/{$kegiatan->tahun}/{$fungsi}/{$kegiatan->nama}/{$akun->nama}/{$transaksi->nama}/{$file->namaFile}");
             if(!file_exists($path)){
                 $file->status = false;
-                $file->save();
-            }else {
-                $file->status = true;
                 $file->save();
             }
         }
@@ -127,7 +124,7 @@ class FileController extends Controller
         return back()->with('success', 'Berhasil disimpan');
     }
 
-    //function untuk show atau preview file 
+    //function untuk show atau preview file
     // public function show($fungsi, $kegiatan, $akun, $transaksi, $filename)
     // {
     //     // Path ke file PDF
@@ -142,7 +139,7 @@ class FileController extends Controller
     //     return response()->file($path, ['Content-Type' => 'application/pdf']);
     // }
 
-    //function untuk menghapus laci file atau file 
+    //function untuk menghapus laci file atau file
     public function destroy(File $file, StoreFileRequest $request)
     {
 
@@ -158,7 +155,7 @@ class FileController extends Controller
             $filePath = "storage/administrasis/$kegiatan->tahun/$fungsi/{$kegiatan->nama}/{$akun->nama}/{$transaksi->nama}/{$file->namaFile}";
 
 
-            //proses pengahapusa file pdf di direktori 
+            //proses pengahapusa file pdf di direktori
             File2::delete(public_path($filePath));
 
 
@@ -216,7 +213,7 @@ class FileController extends Controller
     {
         // Inisialisasi pesan kesalahan dan mengambil tahun dari session
         $errorMessage = '';
-        
+
 
 
         // Loop melalui setiap file yang diunggah
@@ -285,7 +282,7 @@ class FileController extends Controller
         return back()->with('success', 'File berhasil ditambahkan!');
     }
 
-    //function untuk download file dalam folder transaksi 
+    //function untuk download file dalam folder transaksi
     public function download()
     {
         // Mendapatkan parameter 'fungsi' dari request
@@ -366,7 +363,7 @@ class FileController extends Controller
             $totalFiles = 0; // total file
             $completeFile = 0; // total file terupload
 
-            //lakukan perulangan dan jumlahkan semua total file dan total file terupload 
+            //lakukan perulangan dan jumlahkan semua total file dan total file terupload
             foreach ($transaksis as $transaksi) {
                 $totalFiles += $transaksi->amount_file;
                 $completeFile += $transaksi->complete_file;
@@ -462,8 +459,9 @@ class FileController extends Controller
         $file = File::find($id);
         if ($file['ceklist'] === 1) {
             $file['ceklist'] = 0;
-        } else {
+        }else{
             $file['ceklist'] = 1;
+
         }
         $file->save();
 
